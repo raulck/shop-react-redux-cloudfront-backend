@@ -1,0 +1,68 @@
+import { Product } from "../../types/product";
+
+export const mockProducts: Product[] = [
+  {
+    id: "1",
+    title: "Porsche 911",
+    price: 99999,
+    description:
+      "A legendary sports car with iconic design and exhilarating performance.",
+  },
+
+  {
+    id: "2",
+    title: "Ford Mustang",
+    price: 55999,
+    description:
+      "An iconic American muscle car with powerful performance and a sleek design.",
+  },
+  {
+    id: "3",
+    title: "Chevrolet Camaro",
+    price: 42999,
+    description:
+      "A sporty coupe with bold styling and thrilling driving dynamics.",
+  },
+  {
+    id: "4",
+    title: "Toyota Corolla",
+    price: 19999,
+    description:
+      "A reliable and fuel-efficient compact car, perfect for daily commuting.",
+  },
+  {
+    id: "5",
+    title: "Honda Civic",
+    price: 22999,
+    description:
+      "A popular compact car known for its reliability, efficiency, and modern features.",
+  },
+  {
+    id: "6",
+    title: "BMW 3 Series",
+    price: 45999,
+    description:
+      "A premium sports sedan offering a perfect balance of luxury and performance.",
+  },
+  {
+    id: "7",
+    title: "Audi Q5",
+    price: 52999,
+    description:
+      "A luxury compact SUV with advanced technology and a comfortable interior.",
+  },
+  {
+    id: "8",
+    title: "Mercedes-Benz C-Class",
+    price: 49999,
+    description:
+      "A sophisticated luxury sedan with elegant styling and cutting-edge features.",
+  },
+  {
+    id: "9",
+    title: "Jeep Wrangler",
+    price: 38999,
+    description:
+      "A rugged off-road SUV designed for adventure and capable of tackling any terrain.",
+  },
+];
