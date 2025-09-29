@@ -2,7 +2,7 @@
 
 ## CloudX: AWS Practitioner for JS
 
-### Assignment 3 – Serverless
+### Assignment 4 - Integration with NoSQL Database
 
 #### Tasks
 
