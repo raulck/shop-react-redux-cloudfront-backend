@@ -4,10 +4,26 @@ import * as lambda from "aws-cdk-lib/aws-lambda";
 import * as lambdaNodejs from "aws-cdk-lib/aws-lambda-nodejs";
 import * as apigateway from "aws-cdk-lib/aws-apigateway";
 import * as path from "path";
+import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
 
 export class ProductServiceStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
+
+    // Define dynamoDB tables
+    const productsTable = new dynamodb.Table(this, "ProductsTable", {
+      tableName: "products",
+      partitionKey: { name: "id", type: dynamodb.AttributeType.STRING },
+      billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
+      removalPolicy: cdk.RemovalPolicy.DESTROY,
+    });
+
+    const stockTable = new dynamodb.Table(this, "StockTable", {
+      tableName: "stock",
+      partitionKey: { name: "product_id", type: dynamodb.AttributeType.STRING },
+      billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
+      removalPolicy: cdk.RemovalPolicy.DESTROY,
+    });
 
     // Define the Lambda functions
     const getProductsListLambda = new lambdaNodejs.NodejsFunction(
@@ -22,6 +38,10 @@ export class ProductServiceStack extends cdk.Stack {
           minify: true, // Optional: Minify the code
           sourceMap: true, // Optional: Include source maps
           externalModules: ["aws-sdk"], // Exclude AWS SDK from the bundle (it's available in the Lambda runtime)
+        },
+        environment: {
+          PRODUCTS_TABLE: productsTable.tableName,
+          STOCK_TABLE: stockTable.tableName,
         },
       }
     );
@@ -38,6 +58,30 @@ export class ProductServiceStack extends cdk.Stack {
           minify: true, // Optional: Minify the code
           sourceMap: true, // Optional: Include source maps
           externalModules: ["aws-sdk"], // Exclude AWS SDK from the bundle (it's available in the Lambda runtime)
+        },
+        environment: {
+          PRODUCTS_TABLE: productsTable.tableName,
+          STOCK_TABLE: stockTable.tableName,
+        },
+      }
+    );
+
+    const createProductLambda = new lambdaNodejs.NodejsFunction(
+      this,
+      "CreateProductLambda",
+      {
+        runtime: lambda.Runtime.NODEJS_20_X,
+        entry: path.join(__dirname, "../lib/lambda/createProduct/index.ts"),
+        handler: "handler",
+        bundling: {
+          forceDockerBundling: false, // Ensure Docker is not used
+          minify: true, // Optional: Minify the code
+          sourceMap: true, // Optional: Include source maps
+          externalModules: ["aws-sdk"], // Exclude AWS SDK from the bundle (it's available in the Lambda runtime)
+        },        
+        environment: {
+          PRODUCTS_TABLE: productsTable.tableName,
+          STOCK_TABLE: stockTable.tableName,
         },
       }
     );
@@ -93,27 +137,28 @@ export class ProductServiceStack extends cdk.Stack {
       },
     });
 
-    // GET /products
+    // Define /products resource
     const productResource = api.root.addResource("products");
 
-    // can be removed after product id is implemented
+    // GET /products - List all products with stock information
     productResource.addMethod(
       "GET",
       new apigateway.LambdaIntegration(getProductsListLambda),
       {
-        methodResponses: [{ statusCode: "200" }],
+        methodResponses: [{ statusCode: "200" }, { statusCode: "500" }],
       }
     );
 
-    // preparation for product id implementation
-    // GET /products/available
-    const availableResource = productResource.addResource("available");
-
-    availableResource.addMethod(
-      "GET",
-      new apigateway.LambdaIntegration(getProductsListLambda),
+    // POST /products - Create new product
+    productResource.addMethod(
+      "POST",
+      new apigateway.LambdaIntegration(createProductLambda),
       {
-        methodResponses: [{ statusCode: "200" }],
+        methodResponses: [
+          { statusCode: "201" },
+          { statusCode: "400" },
+          { statusCode: "500" },
+        ],
       }
     );
 
@@ -152,10 +197,36 @@ export class ProductServiceStack extends cdk.Stack {
       }
     );
 
+
+
+    // --- Read access for read-only Lambda functions
+    const readLambdas = [
+      getProductsListLambda,
+      getProductByIdLambda,
+    ];
+    readLambdas.forEach((lambda) => productsTable.grantReadData(lambda));
+    readLambdas.forEach((lambda) => stockTable.grantReadData(lambda));
+
+    // --- Write Access for CreateProduct ---
+    productsTable.grantWriteData(createProductLambda);
+    stockTable.grantWriteData(createProductLambda);
+
     // Output the API Gateway URL
     new cdk.CfnOutput(this, "ApiUrl", {
       value: api.url,
       description: "The URL of the Product Service API",
     });
+
+    // Output table names for easier seeding
+    new cdk.CfnOutput(this, "ProductsTableName", {
+      value: productsTable.tableName,
+      description: "Name of the Products DynamoDB table",
+    });
+
+    new cdk.CfnOutput(this, "StockTableName", {
+      value: stockTable.tableName,
+      description: "Name of the Stock DynamoDB table",
+    });
+
   }
 }

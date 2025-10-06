@@ -6,13 +6,15 @@
   },
   "scripts": {
     "deploy": "cdk deploy",
-    "deploy:stack": "npm run build:lambda && cdk deploy ProductServiceStack",
-    "synth": "npm run build:lambda && cdk synth",
-    "diff": "npm run build:lambda && cdk diff",
+    "deploy:stack": "npm run build && cdk deploy ProductServiceStack",
+    "synth": "npm run build && cdk synth",
+    "diff": "npm run build && cdk diff",
     "build": "tsc",
+    "build:lambda": "tsc",
     "watch": "tsc -w",
     "test": "jest",
-    "cdk": "cdk"
+    "cdk": "cdk",
+    "seed": "ts-node scripts/seed-tables.ts"
   },
   "devDependencies": {
     "@types/aws-lambda": "^8.10.152",
@@ -26,8 +28,12 @@
     "typescript": "~5.6.3"
   },
   "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.896.0",
+    "@aws-sdk/lib-dynamodb": "^3.896.0",
+    "@types/uuid": "^10.0.0",
     "aws-cdk-lib": "2.211.0",
     "aws-lambda": "^1.0.7",
-    "constructs": "^10.0.0"
+    "constructs": "^10.0.0",
+    "uuid": "^13.0.0"
   }
 }
