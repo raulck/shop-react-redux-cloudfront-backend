@@ -31,7 +31,10 @@ export class ProductServiceStack extends cdk.Stack {
       "GetProductsListLambda",
       {
         runtime: lambda.Runtime.NODEJS_20_X, // Use Node.js 20.x runtime
-        entry: path.join(__dirname, "../lib/lambda/getProductsList/index.ts"),
+        entry: path.join(
+          __dirname,
+          "../lib/lambdas/products/getProductsList.ts"
+        ),
         handler: "handler", // Entry point of the Lambda function
         bundling: {
           forceDockerBundling: false, // Ensure Docker is not used
@@ -51,7 +54,10 @@ export class ProductServiceStack extends cdk.Stack {
       "GetProductByIdLambda",
       {
         runtime: lambda.Runtime.NODEJS_20_X, // Use Node.js 20.x runtime
-        entry: path.join(__dirname, "../lib/lambda/getProductById/index.ts"),
+        entry: path.join(
+          __dirname,
+          "../lib/lambdas/products/getProductById.ts"
+        ),
         handler: "handler", // Entry point of the Lambda function
         bundling: {
           forceDockerBundling: false, // Ensure Docker is not used
@@ -71,14 +77,34 @@ export class ProductServiceStack extends cdk.Stack {
       "CreateProductLambda",
       {
         runtime: lambda.Runtime.NODEJS_20_X,
-        entry: path.join(__dirname, "../lib/lambda/createProduct/index.ts"),
+        entry: path.join(__dirname, "../lib/lambdas/products/createProduct.ts"),
         handler: "handler",
         bundling: {
           forceDockerBundling: false, // Ensure Docker is not used
           minify: true, // Optional: Minify the code
           sourceMap: true, // Optional: Include source maps
           externalModules: ["aws-sdk"], // Exclude AWS SDK from the bundle (it's available in the Lambda runtime)
-        },        
+        },
+        environment: {
+          PRODUCTS_TABLE: productsTable.tableName,
+          STOCK_TABLE: stockTable.tableName,
+        },
+      }
+    );
+
+    const updateProductLambda = new lambdaNodejs.NodejsFunction(
+      this,
+      "UpdateProductLambda",
+      {
+        runtime: lambda.Runtime.NODEJS_20_X,
+        entry: path.join(__dirname, "../lib/lambdas/products/updateProduct.ts"),
+        handler: "handler",
+        bundling: {
+          forceDockerBundling: false, // Ensure Docker is not used
+          minify: true, // Optional: Minify the code
+          sourceMap: true, // Optional: Include source maps
+          externalModules: ["aws-sdk"], // Exclude AWS SDK from the bundle (it's available in the Lambda runtime)
+        },
         environment: {
           PRODUCTS_TABLE: productsTable.tableName,
           STOCK_TABLE: stockTable.tableName,
@@ -93,7 +119,7 @@ export class ProductServiceStack extends cdk.Stack {
         runtime: lambda.Runtime.NODEJS_20_X, // Use Node.js 20.x runtime
         entry: path.join(
           __dirname,
-          "../lib/lambda/documentation/getOpenApiJson.ts"
+          "../lib/lambdas/documentation/getOpenApiJson.ts"
         ),
         handler: "handler", // Entry point of the Lambda function
         bundling: {
@@ -112,7 +138,7 @@ export class ProductServiceStack extends cdk.Stack {
         runtime: lambda.Runtime.NODEJS_20_X, // Use Node.js 20.x runtime
         entry: path.join(
           __dirname,
-          "../lib/lambda/documentation/getSwagger.ts"
+          "../lib/lambdas/documentation/getSwagger.ts"
         ),
         handler: "handler", // Entry point of the Lambda function
         bundling: {
@@ -177,6 +203,20 @@ export class ProductServiceStack extends cdk.Stack {
       }
     );
 
+    // PUT /product/{productId}
+    productByIdResource.addMethod(
+      "PUT",
+      new apigateway.LambdaIntegration(updateProductLambda),
+      {
+        methodResponses: [
+          { statusCode: "200" },
+          { statusCode: "400" },
+          { statusCode: "404" },
+          { statusCode: "500" },
+        ],
+      }
+    );
+
     // docs - GET swagger and openApi
     const openApiJsonResource = api.root.addResource("openapi.json");
 
@@ -197,19 +237,15 @@ export class ProductServiceStack extends cdk.Stack {
       }
     );
 
-
-
     // --- Read access for read-only Lambda functions
-    const readLambdas = [
-      getProductsListLambda,
-      getProductByIdLambda,
-    ];
+    const readLambdas = [getProductsListLambda, getProductByIdLambda];
     readLambdas.forEach((lambda) => productsTable.grantReadData(lambda));
     readLambdas.forEach((lambda) => stockTable.grantReadData(lambda));
 
     // --- Write Access for CreateProduct ---
-    productsTable.grantWriteData(createProductLambda);
-    stockTable.grantWriteData(createProductLambda);
+    const writeLambdas = [createProductLambda, updateProductLambda];
+    writeLambdas.forEach((lambda) => productsTable.grantWriteData(lambda));
+    writeLambdas.forEach((lambda) => stockTable.grantWriteData(lambda));
 
     // Output the API Gateway URL
     new cdk.CfnOutput(this, "ApiUrl", {
@@ -227,6 +263,5 @@ export class ProductServiceStack extends cdk.Stack {
       value: stockTable.tableName,
       description: "Name of the Stock DynamoDB table",
     });
-
   }
 }

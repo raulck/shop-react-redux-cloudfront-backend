@@ -13,7 +13,7 @@ jest.mock("@aws-sdk/lib-dynamodb", () => ({
   GetCommand: jest.fn(),
 }));
 
-import { handler } from "../../lib/lambda/getProductById";
+import { handler } from "../../lib/lambdas/products/getProductById";
 
 // Set environment variables for testing
 process.env.PRODUCTS_TABLE = "test-products-table";
@@ -37,6 +37,13 @@ const baseEvent = {
 describe("Lambda handler GetProductByIdLambda", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    // Suppress console.error during tests
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    // Restore console.error after each test
+    jest.restoreAllMocks();
   });
 
   it("should return 400 if productId is missing", async () => {
@@ -52,7 +59,7 @@ describe("Lambda handler GetProductByIdLambda", () => {
 
   it("should return 404 if product is not found", async () => {
     const event = { ...baseEvent, pathParameters: { productId: "not-exist" } };
-    
+
     // Mock DynamoDB to return no product
     mockSend.mockResolvedValueOnce({ Item: undefined });
 
@@ -67,16 +74,16 @@ describe("Lambda handler GetProductByIdLambda", () => {
 
   it("should return 200 and the product with stock if found", async () => {
     const productId = "test-product-1";
-    const mockProduct = { 
-      id: productId, 
-      title: "Test Product", 
-      price: 99.99, 
-      description: "A test product" 
+    const mockProduct = {
+      id: productId,
+      title: "Test Product",
+      price: 99.99,
+      description: "A test product",
     };
     const mockStockItem = { product_id: productId, count: 5 };
 
     const event = { ...baseEvent, pathParameters: { productId } };
-    
+
     mockSend
       .mockResolvedValueOnce({ Item: mockProduct }) // Product found
       .mockResolvedValueOnce({ Item: mockStockItem }); // Stock found
@@ -85,8 +92,12 @@ describe("Lambda handler GetProductByIdLambda", () => {
 
     expect(result.statusCode).toBe(200);
     expect(result.headers).toBeDefined();
-    expect(result.headers && result.headers["Content-Type"]).toBe("application/json");
-    expect(result.headers && result.headers["Access-Control-Allow-Origin"]).toBe("*");
+    expect(result.headers && result.headers["Content-Type"]).toBe(
+      "application/json"
+    );
+    expect(
+      result.headers && result.headers["Access-Control-Allow-Origin"]
+    ).toBe("*");
 
     const body = JSON.parse(result.body);
     expect(body).toEqual({
@@ -94,7 +105,7 @@ describe("Lambda handler GetProductByIdLambda", () => {
       title: "Test Product",
       price: 99.99,
       description: "A test product",
-      count: 5
+      count: 5,
     });
 
     expect(mockSend).toHaveBeenCalledTimes(2);
@@ -102,15 +113,15 @@ describe("Lambda handler GetProductByIdLambda", () => {
 
   it("should return product with count 0 if no stock found", async () => {
     const productId = "test-product-2";
-    const mockProduct = { 
-      id: productId, 
-      title: "Test Product 2", 
-      price: 199.99, 
-      description: "Another test product" 
+    const mockProduct = {
+      id: productId,
+      title: "Test Product 2",
+      price: 199.99,
+      description: "Another test product",
     };
 
     const event = { ...baseEvent, pathParameters: { productId } };
-    
+
     mockSend
       .mockResolvedValueOnce({ Item: mockProduct }) // Product found
       .mockResolvedValueOnce({ Item: undefined }); // No stock found
@@ -124,18 +135,23 @@ describe("Lambda handler GetProductByIdLambda", () => {
       title: "Test Product 2",
       price: 199.99,
       description: "Another test product",
-      count: 0
+      count: 0,
     });
   });
 
   it("should return 500 on DynamoDB error", async () => {
-    const event = { ...baseEvent, pathParameters: { productId: "test-product" } };
-    
+    const event = {
+      ...baseEvent,
+      pathParameters: { productId: "test-product" },
+    };
+
     mockSend.mockRejectedValueOnce(new Error("DynamoDB error"));
 
     const result = await handler(event);
 
     expect(result.statusCode).toBe(500);
-    expect(result.body).toBe(JSON.stringify({ message: "Internal Server Error" }));
+    expect(result.body).toBe(
+      JSON.stringify({ message: "Internal Server Error" })
+    );
   });
 });

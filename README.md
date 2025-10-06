@@ -2,26 +2,33 @@
 
 ## CloudX: AWS Practitioner for JS
 
-### Assignment 4 - Integration with NoSQL Database
+### Assignment 5 - Integration with S3
 
-#### Tasks
+#### Tasks - what was done
 
-- created two database tables in DynamoDB: products and stock table
-- wrote a script to fill tables with test examples (seed-tables.ts)
-- integrated the getProductsList lambda to return via GET /products request a list of products from the database (joined stock and products tables) and implemented product model on FE side - [My shop app](https://d1kq5q0usw740u.cloudfront.net)
+- ImportServiceStack was created and repository structure updated (import-service-stack.ts added) in lib folder
+- S3 bucket was defined and deployed in ImportServiceStack with an 'uploaded' folder
+- Lambda function importProductsFile was created and integrated with API Gateway at GET /import
+- Function returned a [Signed URL with query param](https://u7trhc85wh.execute-api.eu-north-1.amazonaws.com/dev/import?name=test.csv) with query param
+- ImportServiceStack was updated with IAM policies and Frontend api path for import was updated
+- Lambda function importFileParser was created and configured to trigger on s3:ObjectCreated events for objects in the 'uploaded' folder and on stream end moved to parsed folder
+ - import file parser is logged in CloudWatch
+ - importProductsFile lambda is covered by unit tests
 
-- created lambda function getProductsList
-- available through url - [Products list](https://himujifavc.execute-api.eu-north-1.amazonaws.com/dev/products)
+ - ESBuild configured for product service, basic tests implemented, code separated, main error scenarios handled
 
-- created lambda function getProductsById
-- available through url - [Product by id](https://himujifavc.execute-api.eu-north-1.amazonaws.com/dev/products/f1e29929-44cf-400a-b9bf-edcb050e32ab)
-- implemented error message for not available id - [Product by id error](https://himujifavc.execute-api.eu-north-1.amazonaws.com/dev/products/99)
 
-- created a lambda function called createProduct under Product Service which is triggered by the HTTP POST method via /products url
+##### Frontend
+
+- [My shop app](https://d1kq5q0usw740u.cloudfront.net)
+
+##### Backend
+- [BE - import service](https://u7trhc85wh.execute-api.eu-north-1.amazonaws.com/dev/)
+- [BE - product service](https://himujifavc.execute-api.eu-north-1.amazonaws.com/dev/)
+
 
 - swagger - [https://himujifavc.execute-api.eu-north-1.amazonaws.com/dev/swagger](https://himujifavc.execute-api.eu-north-1.amazonaws.com/dev/swagger)
 
-- ESBuild configured for product service, basic tests implemented, code separated, main error scenarios handled
 
 ##
 
