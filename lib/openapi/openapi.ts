@@ -3,7 +3,7 @@ export const openapi = {
   info: {
     title: "Product Service API",
     version: "1.0.0",
-    description: "OpenAPI documentation for Product Service - A motorcycle shop backend API",
+    description: "OpenAPI documentation for Product Service - A motorcycle shop backend API with CRUD operations for products and stock management",
   },
   servers: [{ url: "/" }],
   paths: {
@@ -86,6 +86,55 @@ export const openapi = {
             content: {
               "application/json": {
                 schema: { $ref: "#/components/schemas/ProductWithStock" },
+              },
+            },
+          },
+          "400": { $ref: "#/components/responses/BadRequest" },
+          "404": { $ref: "#/components/responses/NotFound" },
+          "500": { $ref: "#/components/responses/InternalError" },
+        },
+      },
+      put: {
+        summary: "Update an existing product",
+        operationId: "updateProduct",
+        description: "Updates an existing product and its stock count",
+        parameters: [
+          {
+            name: "productId",
+            in: "path",
+            required: true,
+            description: "The ID of the product to update",
+            schema: { type: "string" },
+            example: "123e4567-e89b-12d3-a456-426614174000",
+          },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/UpdateProduct" },
+            },
+          },
+        },
+        responses: {
+          "200": {
+            description: "Product updated successfully",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    message: {
+                      type: "string",
+                      example: "Product updated",
+                    },
+                    id: {
+                      type: "string",
+                      example: "123e4567-e89b-12d3-a456-426614174000",
+                    },
+                  },
+                  required: ["message", "id"],
+                },
               },
             },
           },
@@ -204,6 +253,39 @@ export const openapi = {
         },
         required: ["title", "description", "price", "count"],
       },
+      UpdateProduct: {
+        type: "object",
+        description: "Data required to update an existing product",
+        properties: {
+          title: { 
+            type: "string", 
+            description: "Product name",
+            example: "Updated Kawasaki Ninja ZX-10R",
+            minLength: 1,
+            maxLength: 100 
+          },
+          description: { 
+            type: "string", 
+            description: "Product description",
+            example: "An updated race-inspired supersport motorcycle with cutting-edge technology.",
+            minLength: 1,
+            maxLength: 500 
+          },
+          price: { 
+            type: "number", 
+            description: "Product price in USD",
+            example: 18399,
+            minimum: 0 
+          },
+          count: { 
+            type: "integer", 
+            description: "Updated stock count",
+            example: 3,
+            minimum: 0 
+          },
+        },
+        required: ["title", "description", "price", "count"],
+      },
     },
     responses: {
       BadRequest: {
@@ -215,7 +297,11 @@ export const openapi = {
               properties: {
                 message: { 
                   type: "string",
-                  example: "title, price, count, description are required" 
+                  examples: [
+                    "title, price, count, description are required",
+                    "Missing request body",
+                    "Missing productId in path"
+                  ]
                 },
               },
               required: ["message"],
