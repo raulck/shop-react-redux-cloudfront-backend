@@ -8,3 +8,9 @@ node_modules
 cdk.out
 .idea
 build
+
+FRONTEND_INTEGRATION_GUIDE.md
+REFACTORING_GUIDE.md
+SQS_MESSAGE_FORMAT.md
+test-upload.csv
+verify-lambdas.ps1

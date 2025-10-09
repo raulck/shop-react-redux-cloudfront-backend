@@ -4,5 +4,11 @@ import { ProductServiceStack } from "../lib/product-service-stack";
 import { ImportServiceStack } from "../lib/import-service-stack";
 
 const app = new cdk.App();
-new ProductServiceStack(app, "ProductServiceStack", {});
-new ImportServiceStack(app, "ImportServiceStack", {});
+
+// Create ProductServiceStack first to get the SQS queue URL
+const productServiceStack = new ProductServiceStack(app, "ProductServiceStack", {});
+
+// Create ImportServiceStack with the SQS queue URL from ProductServiceStack
+new ImportServiceStack(app, "ImportServiceStack", {
+  catalogItemsQueueUrl: productServiceStack.catalogItemsQueueUrl,
+});

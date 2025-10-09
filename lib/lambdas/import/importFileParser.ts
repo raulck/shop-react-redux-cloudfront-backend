@@ -4,11 +4,17 @@ import {
   CopyObjectCommand,
   DeleteObjectCommand,
 } from "@aws-sdk/client-s3";
+import {
+  SQSClient,
+  SendMessageCommand,
+} from "@aws-sdk/client-sqs";
 import csv from "csv-parser";
 import { Readable } from "stream";
 
 const s3 = new S3Client({});
+const sqs = new SQSClient({});
 const BUCKET = process.env.BUCKET_NAME;
+const CATALOG_ITEMS_QUEUE_URL = process.env.CATALOG_ITEMS_QUEUE_URL;
 
 export const handler = async (event: { Records: any }) => {
   for (const record of event.Records || []) {
@@ -42,6 +48,40 @@ export const handler = async (event: { Records: any }) => {
       });
 
       console.log(`Processed ${products.length} products from CSV file`);
+
+      // Send each product to SQS queue if configured
+      if (CATALOG_ITEMS_QUEUE_URL && products.length > 0) {
+        console.log(`Sending ${products.length} products to SQS queue`);
+        
+        for (const product of products) {
+          try {
+            // Validate and clean the product data
+            const productMessage = {
+              title: product.title || 'Unknown Product',
+              description: product.description || '',
+              price: parseFloat(product.price) || 0,
+              count: parseInt(product.count) || 0,
+              category: product.category || undefined
+            };
+
+            await sqs.send(new SendMessageCommand({
+              QueueUrl: CATALOG_ITEMS_QUEUE_URL,
+              MessageBody: JSON.stringify(productMessage)
+            }));
+            
+            console.log(`Sent product to SQS: ${productMessage.title}`);
+          } catch (sqsError) {
+            console.error(`Failed to send product to SQS:`, sqsError);
+            // Continue processing other products even if one fails
+          }
+        }
+        
+        console.log(`Successfully sent ${products.length} products to SQS`);
+      } else if (!CATALOG_ITEMS_QUEUE_URL) {
+        console.warn('CATALOG_ITEMS_QUEUE_URL not configured, skipping SQS processing');
+      } else {
+        console.log('No products found in CSV file');
+      }
 
       const parsedKey = key.replace("uploaded/", "parsed/");
       await s3.send(

@@ -6,10 +6,11 @@ import * as lambdaNode from "aws-cdk-lib/aws-lambda-nodejs";
 import * as apigateway from "aws-cdk-lib/aws-apigateway";
 import * as s3n from "aws-cdk-lib/aws-s3-notifications";
 import * as s3deploy from "aws-cdk-lib/aws-s3-deployment";
+import * as iam from "aws-cdk-lib/aws-iam";
 import * as path from "path";
 
 interface ImportServiceStackProps extends cdk.StackProps {
-  // Add future props here if needed
+  catalogItemsQueueUrl?: string;
 }
 
 export class ImportServiceStack extends cdk.Stack {
@@ -93,6 +94,7 @@ export class ImportServiceStack extends cdk.Stack {
         },
         environment: {
           BUCKET_NAME: bucket.bucketName,
+          CATALOG_ITEMS_QUEUE_URL: props?.catalogItemsQueueUrl || '',
         },
       }
     );
@@ -100,6 +102,33 @@ export class ImportServiceStack extends cdk.Stack {
     bucket.grantRead(importFileParserLambda, "uploaded/*");
     bucket.grantDelete(importFileParserLambda, "uploaded/*");
     bucket.grantPut(importFileParserLambda, "parsed/*");
+
+    // Grant SQS permissions if queue URL is provided
+    if (props?.catalogItemsQueueUrl) {
+      // Use wildcard for cross-stack SQS queue access since exact ARN resolution might fail
+      importFileParserLambda.addToRolePolicy(new iam.PolicyStatement({
+        effect: iam.Effect.ALLOW,
+        actions: [
+          'sqs:SendMessage',
+          'sqs:GetQueueAttributes',
+          'sqs:GetQueueUrl'
+        ],
+        resources: [`arn:aws:sqs:${this.region}:${this.account}:*CatalogItemsQueue*`]
+      }));
+    }
+
+    // Grant SQS permissions if queue URL is provided
+    if (props?.catalogItemsQueueUrl) {
+      importFileParserLambda.addToRolePolicy(new iam.PolicyStatement({
+        effect: iam.Effect.ALLOW,
+        actions: [
+          'sqs:SendMessage',
+          'sqs:GetQueueAttributes',
+          'sqs:GetQueueUrl'
+        ],
+        resources: [`arn:aws:sqs:${this.region}:${this.account}:*catalog-items-queue*`]
+      }));
+    }
 
     bucket.addEventNotification(
       s3.EventType.OBJECT_CREATED,
