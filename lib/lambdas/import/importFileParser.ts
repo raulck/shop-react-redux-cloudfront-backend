@@ -28,15 +28,20 @@ export const handler = async (event: { Records: any }) => {
         continue;
       }
 
+      const products: any[] = [];
+      
       await new Promise<void>((resolve, reject) => {
         bodyStream
           .pipe(csv())
           .on("data", (row: any) => {
-            console.log("ROW:", row);
+            console.log("Processing CSV row:", row.title || 'Unknown Product');
+            products.push(row);
           })
           .on("end", resolve)
           .on("error", reject);
       });
+
+      console.log(`Processed ${products.length} products from CSV file`);
 
       const parsedKey = key.replace("uploaded/", "parsed/");
       await s3.send(
