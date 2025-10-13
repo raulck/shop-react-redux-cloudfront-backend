@@ -33,6 +33,8 @@ export const handler = async (event: { Records: any }) => {
         continue;
       }
 
+      const products: any[] = [];
+      
       await new Promise<void>((resolve, reject) => {
         bodyStream
           .pipe(csv())

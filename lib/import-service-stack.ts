@@ -9,8 +9,12 @@ import * as s3n from "aws-cdk-lib/aws-s3-notifications";
 import * as s3deploy from "aws-cdk-lib/aws-s3-deployment";
 import * as path from "path";
 
+interface ImportServiceStackProps extends cdk.StackProps {
+  // Add future props here if needed
+}
+
 export class ImportServiceStack extends cdk.Stack {
-  constructor(scope: Construct, id: string, props?: cdk.StackProps) {
+  constructor(scope: Construct, id: string, props?: ImportServiceStackProps) {
     super(scope, id, props);
 
     const bucket = new s3.Bucket(this, "ImportBucket", {
@@ -44,6 +48,8 @@ export class ImportServiceStack extends cdk.Stack {
           "../lib/lambdas/import/importProductsFile.ts"
         ),
         handler: "handler",
+        memorySize: 128, // Simple S3 signed URL generation
+        timeout: cdk.Duration.seconds(10), // Quick timeout
         bundling: {
           forceDockerBundling: false, // Ensure Docker is not used
           minify: true, // Optional: Minify the code
@@ -84,6 +90,8 @@ export class ImportServiceStack extends cdk.Stack {
           "../lib/lambdas/import/importFileParser.ts"
         ),
         handler: "handler",
+        memorySize: 512, // More memory for CSV parsing + SQS writes
+        timeout: cdk.Duration.seconds(60), // Longer timeout for file processing
         bundling: {
           forceDockerBundling: false, // Ensure Docker is not used
           minify: true, // Optional: Minify the code
