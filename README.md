@@ -2,36 +2,34 @@
 
 ## CloudX: AWS Practitioner for JS
 
-### Assignment 5 - Integration with S3
+### Assignment 6 - SQS & SNS, Async Microservices Communication
 
 #### Tasks - what was done
 
-- ImportServiceStack was created and repository structure updated (import-service-stack.ts added) in lib folder
-- S3 bucket was defined and deployed in ImportServiceStack with an 'uploaded' folder
-- Lambda function importProductsFile was created and integrated with API Gateway at GET /import
-- Function returned a [Signed URL with query param](https://u7trhc85wh.execute-api.eu-north-1.amazonaws.com/dev/import?name=test.csv) with query param
-- ImportServiceStack was updated with IAM policies and Frontend api path for import was updated
-- Lambda function importFileParser was created and configured to trigger on s3:ObjectCreated events for objects in the 'uploaded' folder and on stream end moved to parsed folder
-- import file parser is logged in CloudWatch
-- importProductsFile lambda is covered by unit tests
+- Lambda function catalogBatchProcess was created and triggered by the SQS queue with a batch size of 5, processing messages to create products
+- SQS queue catalogItemsQueue was created and configured in the CDK stack
+- Lambda function importFileParser in the Import Service was updated to send each CSV record to SQS
+- SNS topic createProductTopic with an email subscription was created in the product service stack
+- Lambda function catalogBatchProcess was updated to send an event to the SNS topic after creating products
+- A Filter Policy was set for SNS createProductTopic and an additional email subscription was created based on product attribute filter
 
 - ESBuild configured for product service, basic tests implemented, code separated, main error scenarios handled
 
 ##### Frontend
 
-- [My shop app](https://d1kq5q0usw740u.cloudfront.net)
+- [My shop app](https://dfdplm1nzmulx.cloudfront.net)
 
 ##### Backend
 
-- available through url - [Products list](https://himujifavc.execute-api.eu-north-1.amazonaws.com/dev/products)
+- available through url - [Products list](https://q7dk10iy6j.execute-api.eu-north-1.amazonaws.com/dev/products)
 
-- available through url - [Product by id](https://himujifavc.execute-api.eu-north-1.amazonaws.com/dev/products/f1e29929-44cf-400a-b9bf-edcb050e32ab)
-- error message for not available id - [Product by id error](https://himujifavc.execute-api.eu-north-1.amazonaws.com/dev/products/99)
+- available through url - [Product by id](https://q7dk10iy6j.execute-api.eu-north-1.amazonaws.com/dev/products/90ae4c4a-7837-4da4-9581-395b66762ed3)
+- error message for not available id - [Product by id error](https://q7dk10iy6j.execute-api.eu-north-1.amazonaws.com/dev/products/99)
 
-- [BE - import service url](https://u7trhc85wh.execute-api.eu-north-1.amazonaws.com/dev/)
-- [BE - product service url](https://himujifavc.execute-api.eu-north-1.amazonaws.com/dev/)
+- [BE - import service url](https://hzj9gaq0d7.execute-api.eu-north-1.amazonaws.com/dev/)
+- [BE - product service url](https://q7dk10iy6j.execute-api.eu-north-1.amazonaws.com/dev/)
 
-- swagger - [https://himujifavc.execute-api.eu-north-1.amazonaws.com/dev/swagger](https://himujifavc.execute-api.eu-north-1.amazonaws.com/dev/swagger)
+- swagger - [https://q7dk10iy6j.execute-api.eu-north-1.amazonaws.com/dev/swagger](https://q7dk10iy6j.execute-api.eu-north-1.amazonaws.com/dev/swagger)
 
 ##
 

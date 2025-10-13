@@ -5,12 +5,16 @@ import * as lambdaNodejs from "aws-cdk-lib/aws-lambda-nodejs";
 import * as apigateway from "aws-cdk-lib/aws-apigateway";
 import * as path from "path";
 import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
+import * as sqs from "aws-cdk-lib/aws-sqs";
+import * as sns from "aws-cdk-lib/aws-sns";
+import * as subscriptions from "aws-cdk-lib/aws-sns-subscriptions";
+import * as eventSources from "aws-cdk-lib/aws-lambda-event-sources";
 
 export class ProductServiceStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
 
-    // Define dynamoDB tables
+    //  ===== Define dynamoDB tables ======
     const productsTable = new dynamodb.Table(this, "ProductsTable", {
       tableName: "products",
       partitionKey: { name: "id", type: dynamodb.AttributeType.STRING },
@@ -26,6 +30,65 @@ export class ProductServiceStack extends cdk.Stack {
     });
 
     // Define the Lambda functions
+    //
+    //  ===== SNS Topic for product catalog updates =====
+    const createProductTopic = new sns.Topic(this, "CreateProductTopic", {
+      topicName: "CreateProductTopic",
+      displayName: "Topic for notifying about new product creation",
+    });
+
+    /// Subscribe an email address to the topic
+    createProductTopic.addSubscription(
+      new subscriptions.EmailSubscription("general@example.com") // replace email
+    );
+
+    /// Example implementation for filtered subscription (receives only messages with eventType = "payment_received")
+    createProductTopic.addSubscription(
+      new subscriptions.EmailSubscription("filtered@example.com", {
+        filterPolicy: {
+          eventType: sns.SubscriptionFilter.stringFilter({
+            allowlist: ["payment_received"], // Only messages with `eventType = "payment_received"`
+          }),
+        },
+      })
+    );
+
+    //  ===== SQS Queue for batch processing =====
+    const catalogItemsQueue = new sqs.Queue(this, "CatalogItemsQueue", {
+      queueName: "catalogItemsQueue",
+      visibilityTimeout: cdk.Duration.seconds(30), // Timeout for in-flight messages
+    });
+
+    const catalogBatchProcessLambda = new lambdaNodejs.NodejsFunction(
+      this,
+      "CatalogBatchProcessHandler",
+      {
+        runtime: lambda.Runtime.NODEJS_20_X, // Use Node.js 20.x runtime
+        entry: path.join(
+          __dirname,
+          "../lib/lambdas/products/catalogBatchProcess.ts"
+        ),
+        handler: "handler", // Entry point of the Lambda function
+        bundling: {
+          forceDockerBundling: false, // Ensure Docker is not used
+          minify: true, // Optional: Minify the code
+          sourceMap: true, // Optional: Include source maps
+          externalModules: ["aws-sdk"], // Exclude AWS SDK from the bundle (it's available in the Lambda runtime)
+        },
+        environment: {
+          PRODUCTS_TABLE: productsTable.tableName,
+          SNS_TOPIC_ARN: createProductTopic.topicArn,
+        },
+      }
+    );
+
+    catalogBatchProcessLambda.addEventSource(
+      new eventSources.SqsEventSource(catalogItemsQueue, {
+        batchSize: 5, // Process up to 5 messages at a time
+      })
+    );
+
+    //  ===== PRODUCTS =====
     const getProductsListLambda = new lambdaNodejs.NodejsFunction(
       this,
       "GetProductsListLambda",
@@ -112,6 +175,7 @@ export class ProductServiceStack extends cdk.Stack {
       }
     );
 
+    //  ===== DOCUMENTATION =====
     const getOpenApiJsonLambda = new lambdaNodejs.NodejsFunction(
       this,
       "GetOpenApiJsonLambda",
@@ -243,9 +307,18 @@ export class ProductServiceStack extends cdk.Stack {
     readLambdas.forEach((lambda) => stockTable.grantReadData(lambda));
 
     // --- Write Access for CreateProduct ---
-    const writeLambdas = [createProductLambda, updateProductLambda];
+    const writeLambdas = [
+      createProductLambda,
+      updateProductLambda,
+      catalogBatchProcessLambda,
+    ];
     writeLambdas.forEach((lambda) => productsTable.grantWriteData(lambda));
     writeLambdas.forEach((lambda) => stockTable.grantWriteData(lambda));
+
+    // --- Grant SQS permissions ---
+    // (Optional): Grant Permissions for Lambda to consume messages from Primary SQS Queue
+    catalogItemsQueue.grantConsumeMessages(catalogBatchProcessLambda);
+    createProductTopic.grantPublish(catalogBatchProcessLambda);
 
     // Output the API Gateway URL
     new cdk.CfnOutput(this, "ApiUrl", {

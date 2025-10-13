@@ -6,8 +6,13 @@ import {
 } from "@aws-sdk/client-s3";
 import csv from "csv-parser";
 import { Readable } from "stream";
+import { SQSClient, SendMessageCommand } from '@aws-sdk/client-sqs';
+
 
 const s3 = new S3Client({});
+const sqsClient = new SQSClient({});
+const sqsUrl = process.env.SQS_URL!;
+
 const BUCKET = process.env.BUCKET_NAME;
 
 export const handler = async (event: { Records: any }) => {
@@ -31,13 +36,26 @@ export const handler = async (event: { Records: any }) => {
       await new Promise<void>((resolve, reject) => {
         bodyStream
           .pipe(csv())
-          .on("data", (row: any) => {
-            console.log("ROW:", row);
+          .on("data", async (row: any) => {
+            // console.log("ROW:", row);
+            try {
+              console.log('Sending parsed row to SQS:', row);
+              await sqsClient.send(
+                new SendMessageCommand({
+                  QueueUrl: sqsUrl,
+                  MessageBody: JSON.stringify(row),
+                })
+              );
+            } catch (err) {
+              console.error('Failed to send message to SQS:', err);
+            }
           })
           .on("end", resolve)
           .on("error", reject);
       });
 
+      console.log(`CSV file ${key} successfully processed and sent to SQS.`);
+      
       const parsedKey = key.replace("uploaded/", "parsed/");
       await s3.send(
         new CopyObjectCommand({

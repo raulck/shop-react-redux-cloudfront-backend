@@ -1,4 +1,5 @@
 import * as cdk from "aws-cdk-lib";
+import * as sqs from 'aws-cdk-lib/aws-sqs';
 import { Construct } from "constructs";
 import * as s3 from "aws-cdk-lib/aws-s3";
 import * as lambda from "aws-cdk-lib/aws-lambda";
@@ -67,6 +68,12 @@ export class ImportServiceStack extends cdk.Stack {
       deployOptions: { stageName: "dev" },
     });
 
+    const catalogItemsQueue = sqs.Queue.fromQueueArn(
+      this,
+      'CatalogItemsQueueImported',
+      `arn:aws:sqs:${this.region}:${this.account}:catalogItemsQueue`
+    );
+
     const importFileParserLambda = new lambdaNode.NodejsFunction(
       this,
       "importFileParserLambda",
@@ -85,9 +92,12 @@ export class ImportServiceStack extends cdk.Stack {
         },
         environment: {
           BUCKET_NAME: bucket.bucketName,
+          SQS_URL: catalogItemsQueue.queueUrl,
         },
       }
     );
+
+    catalogItemsQueue.grantSendMessages(importFileParserLambda);
 
     bucket.grantRead(importFileParserLambda, "uploaded/*");
     bucket.grantDelete(importFileParserLambda, "uploaded/*");
