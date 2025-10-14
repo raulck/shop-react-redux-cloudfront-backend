@@ -23,7 +23,7 @@
 
 - available through url - [Products list](https://q7dk10iy6j.execute-api.eu-north-1.amazonaws.com/dev/products)
 
-- available through url - [Product by id](https://q7dk10iy6j.execute-api.eu-north-1.amazonaws.com/dev/products/90ae4c4a-7837-4da4-9581-395b66762ed3)
+- available through url - [Product by id](https://q7dk10iy6j.execute-api.eu-north-1.amazonaws.com/dev/products/c6b0b426-c432-42d6-a26f-824968cbd103)
 - error message for not available id - [Product by id error](https://q7dk10iy6j.execute-api.eu-north-1.amazonaws.com/dev/products/99)
 
 - [BE - import service url](https://hzj9gaq0d7.execute-api.eu-north-1.amazonaws.com/dev/)
