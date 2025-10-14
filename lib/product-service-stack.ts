@@ -1,9 +1,5 @@
 import * as cdk from "aws-cdk-lib";
 import { Construct } from "constructs";
-import * as lambda from "aws-cdk-lib/aws-lambda";
-import * as lambdaNodejs from "aws-cdk-lib/aws-lambda-nodejs";
-import * as apigateway from "aws-cdk-lib/aws-apigateway";
-import * as path from "path";
 import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
 import * as sqs from "aws-cdk-lib/aws-sqs";
 import * as sns from "aws-cdk-lib/aws-sns";
@@ -11,6 +7,10 @@ import * as subscriptions from "aws-cdk-lib/aws-sns-subscriptions";
 import * as eventSources from "aws-cdk-lib/aws-lambda-event-sources";
 
 export class ProductServiceStack extends cdk.Stack {
+  public readonly productsTable: dynamodb.Table;
+  public readonly stockTable: dynamodb.Table;
+  public readonly apiUrl: string;
+
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
 
@@ -326,14 +326,14 @@ export class ProductServiceStack extends cdk.Stack {
       description: "The URL of the Product Service API",
     });
 
-    // Output table names for easier seeding
+    // DynamoDB table names for easier reference
     new cdk.CfnOutput(this, "ProductsTableName", {
-      value: productsTable.tableName,
+      value: database.productsTable.tableName,
       description: "Name of the Products DynamoDB table",
     });
 
     new cdk.CfnOutput(this, "StockTableName", {
-      value: stockTable.tableName,
+      value: database.stockTable.tableName,
       description: "Name of the Stock DynamoDB table",
     });
   }
