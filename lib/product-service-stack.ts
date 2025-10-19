@@ -5,6 +5,10 @@ import * as sqs from "aws-cdk-lib/aws-sqs";
 import * as sns from "aws-cdk-lib/aws-sns";
 import * as subscriptions from "aws-cdk-lib/aws-sns-subscriptions";
 import * as eventSources from "aws-cdk-lib/aws-lambda-event-sources";
+import * as lambdaNodejs from "aws-cdk-lib/aws-lambda-nodejs";
+import * as lambda from "aws-cdk-lib/aws-lambda";
+import * as apigateway from "aws-cdk-lib/aws-apigateway";
+import * as path from "path";
 
 export class ProductServiceStack extends cdk.Stack {
   public readonly productsTable: dynamodb.Table;
@@ -39,7 +43,7 @@ export class ProductServiceStack extends cdk.Stack {
 
     /// Subscribe an email address to the topic
     createProductTopic.addSubscription(
-      new subscriptions.EmailSubscription("general@example.com") // replace email
+      new subscriptions.EmailSubscription("raul_cikovic@epam.com") // replace email
     );
 
     /// Example implementation for filtered subscription (receives only messages with eventType = "payment_received")
@@ -77,6 +81,7 @@ export class ProductServiceStack extends cdk.Stack {
         },
         environment: {
           PRODUCTS_TABLE: productsTable.tableName,
+          STOCK_TABLE: stockTable.tableName,
           SNS_TOPIC_ARN: createProductTopic.topicArn,
         },
       }
@@ -224,6 +229,17 @@ export class ProductServiceStack extends cdk.Stack {
       defaultCorsPreflightOptions: {
         allowOrigins: apigateway.Cors.ALL_ORIGINS,
         allowMethods: apigateway.Cors.ALL_METHODS,
+        allowHeaders: [
+          'Content-Type',
+          'X-Amz-Date',
+          'Authorization',
+          'X-Api-Key',
+          'X-Amz-Security-Token',
+          'X-Amz-User-Agent',
+          'cache-control',
+          'x-requested-with'
+        ],
+        allowCredentials: false,
       },
     });
 
@@ -328,12 +344,12 @@ export class ProductServiceStack extends cdk.Stack {
 
     // DynamoDB table names for easier reference
     new cdk.CfnOutput(this, "ProductsTableName", {
-      value: database.productsTable.tableName,
+      value: productsTable.tableName,
       description: "Name of the Products DynamoDB table",
     });
 
     new cdk.CfnOutput(this, "StockTableName", {
-      value: database.stockTable.tableName,
+      value: stockTable.tableName,
       description: "Name of the Stock DynamoDB table",
     });
   }
