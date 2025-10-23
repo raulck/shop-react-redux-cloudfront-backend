@@ -2,34 +2,42 @@
 
 ## CloudX: AWS Practitioner for JS
 
-### Assignment 6 - SQS & SNS, Async Microservices Communication
+### Assignment 7 - Authorization
 
 #### Tasks - what was done
 
-- Lambda function catalogBatchProcess was created and triggered by the SQS queue with a batch size of 5, processing messages to create products
-- SQS queue catalogItemsQueue was created and configured in the CDK stack
-- Lambda function importFileParser in the Import Service was updated to send each CSV record to SQS
-- SNS topic createProductTopic with an email subscription was created in the product service stack
-- Lambda function catalogBatchProcess was updated to send an event to the SNS topic after creating products
-- A Filter Policy was set for SNS createProductTopic and an additional email subscription was created based on product attribute filter
+- authorization-service was created
+- basicAuthorizer lambda was created with an environment variable (yourGitHub=TEST_PASSWORD) using an .env file
+- implemented 403 for invalid token and 401 if the Authorization header was missing
+- Import Service API Gateway was configured to use the basicAuthorizer lambda on the /import path
+- client application was updated to send the 'Authorization: Basic {authorization_token}' header on /import requests, with token retrieved from localStorage
+- client application displayed alerts for responses with 401 and 403 HTTP status codes
 
 - ESBuild configured for product service, basic tests implemented, code separated, main error scenarios handled
 
+- in backend repository included test-upload.csv for testing upload functionality on import path
+
 ##### Frontend
 
-- [My shop app](https://dfdplm1nzmulx.cloudfront.net)
+- [My shop app](https://d3mo1s5p3t66yh.cloudfront.net)
 
 ##### Backend
 
-- available through url - [Products list](https://q7dk10iy6j.execute-api.eu-north-1.amazonaws.com/dev/products)
+- available through url - [Products list](https://j0ram3ea0i.execute-api.eu-north-1.amazonaws.com/dev/products)
+- error message for not available id - [Product by id error](https://j0ram3ea0i.execute-api.eu-north-1.amazonaws.com/dev/products/99)
 
-- available through url - [Product by id](https://q7dk10iy6j.execute-api.eu-north-1.amazonaws.com/dev/products/c6b0b426-c432-42d6-a26f-824968cbd103)
-- error message for not available id - [Product by id error](https://q7dk10iy6j.execute-api.eu-north-1.amazonaws.com/dev/products/99)
+- [BE - import service url](https://nhnsq9q964.execute-api.eu-north-1.amazonaws.com/dev/)
+- [BE - product service url](https://j0ram3ea0i.execute-api.eu-north-1.amazonaws.com/dev/)
 
-- [BE - import service url](https://hzj9gaq0d7.execute-api.eu-north-1.amazonaws.com/dev/)
-- [BE - product service url](https://q7dk10iy6j.execute-api.eu-north-1.amazonaws.com/dev/)
+- swagger - [https://j0ram3ea0i.execute-api.eu-north-1.amazonaws.com/dev/swagger](https://j0ram3ea0i.execute-api.eu-north-1.amazonaws.com/dev/swagger)
 
-- swagger - [https://q7dk10iy6j.execute-api.eu-north-1.amazonaws.com/dev/swagger](https://q7dk10iy6j.execute-api.eu-north-1.amazonaws.com/dev/swagger)
+#### Paste this in browser console to set credentials manually in local storage
+
+#### add
+`localStorage.setItem('authorization_token', btoa('testuser:testpass123')); console.log('Auth set!');` - replace btoa values with valid credentials to test, valid credentials values are set as instructed in assignment
+
+#### remove
+`localStorage.removeItem('authorization_token');`
 
 ##
 

@@ -1,5 +1,5 @@
 import * as cdk from "aws-cdk-lib";
-import * as sqs from 'aws-cdk-lib/aws-sqs';
+import * as sqs from "aws-cdk-lib/aws-sqs";
 import { Construct } from "constructs";
 import * as s3 from "aws-cdk-lib/aws-s3";
 import * as lambda from "aws-cdk-lib/aws-lambda";
@@ -71,14 +71,14 @@ export class ImportServiceStack extends cdk.Stack {
         allowOrigins: apigateway.Cors.ALL_ORIGINS,
         allowMethods: apigateway.Cors.ALL_METHODS,
         allowHeaders: [
-          'Content-Type',
-          'X-Amz-Date',
-          'Authorization',
-          'X-Api-Key',
-          'X-Amz-Security-Token',
-          'X-Amz-User-Agent',
-          'cache-control',
-          'x-requested-with'
+          "Content-Type",
+          "X-Amz-Date",
+          "Authorization",
+          "X-Api-Key",
+          "X-Amz-Security-Token",
+          "X-Amz-User-Agent",
+          "cache-control",
+          "x-requested-with",
         ],
         allowCredentials: false,
       },
@@ -87,7 +87,7 @@ export class ImportServiceStack extends cdk.Stack {
 
     const catalogItemsQueue = sqs.Queue.fromQueueArn(
       this,
-      'CatalogItemsQueueImported',
+      "CatalogItemsQueueImported",
       `arn:aws:sqs:${this.region}:${this.account}:catalogItemsQueue`
     );
 
@@ -128,12 +128,32 @@ export class ImportServiceStack extends cdk.Stack {
       { prefix: "uploaded/", suffix: ".csv" }
     );
 
+    // Token Authorizer from Authorization Service
+    const authorizerArn = cdk.Fn.importValue('BasicAuthorizerArn');
+    const authorizerLambda = lambda.Function.fromFunctionArn(
+      this,
+      'ImportedBasicAuthorizer',
+      authorizerArn
+    );
+
+    const authorizer = new apigateway.TokenAuthorizer(
+      this,
+      "BasicTokenAuthorizer",
+      {
+        handler: authorizerLambda,
+        identitySource: "method.request.header.Authorization",
+        authorizerName: "BasicAuthorizer",
+        resultsCacheTtl: cdk.Duration.minutes(5),
+      }
+    );
+
     const importResource = api.root.addResource("import");
     importResource.addMethod(
       "GET",
       new apigateway.LambdaIntegration(importProductsFileLambda),
       {
-        methodResponses: [{ statusCode: "200" }],
+        authorizer: authorizer,
+        authorizationType: apigateway.AuthorizationType.CUSTOM,
       }
     );
   }
